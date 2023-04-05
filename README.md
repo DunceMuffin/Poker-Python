@@ -11,7 +11,8 @@ Though I plan to implement more versions of poker with an actual AI.
 
 ### Dependencies
 
-* As ong as you can run python, it should work just fine on its own.
+* Created in python 3.11.2
+* Just requires bash
 
 ### Installing
 
@@ -20,7 +21,7 @@ Though I plan to implement more versions of poker with an actual AI.
 
 ### Executing program
 
-* Run it in bash, and the program should gudie you from there.
+* Run it in bash, and the program should guide you from there.
 ```
 
 ## Help
