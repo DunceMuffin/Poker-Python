@@ -5,7 +5,7 @@ A simple text based poker game built in python.
 ## Description
 
 A text based poker game built with random AI and is currently being built for Five Card Draw.
-Though I plan to implement more versions of poker with an actual AI.
+Though I plan to implement more card games with an actual AI.
 
 ## Getting Started
 
@@ -22,12 +22,10 @@ Though I plan to implement more versions of poker with an actual AI.
 ### Executing program
 
 * Run it in bash, and the program should guide you from there.
-```
 
 ## Help
 
 I don't honestly expect it to run at all right now, 
-```
 
 ## Authors
 
