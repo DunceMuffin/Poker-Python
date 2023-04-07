@@ -7,15 +7,13 @@ import random
 
 class Player:
     '''class used to generate players, holds name and hand value'''
-    count = 0
 
-    def __init__(self, name):
+    def __init__(self, name, identifier):
         self.name = name
         self.hand = []
         self.coins = 100
         self.state = 1
-        self.identifier = self.count
-        self.count += 1
+        self.identifier = identifier
 
 
 class Card:
@@ -29,13 +27,16 @@ class Card:
 # GAME FUNCTIONS
 
 
-def remove_cards():
+def remove_all_cards():
     '''removes cards from all player hands and returns them to the deck'''
     print('Returning cards...\n')
     for player in players:
-        for i in reversed(range(len(player.hand))):
-            deck.append(player.hand.pop(i))
+        remove_cards(player)
 
+def remove_cards(player):
+    '''removes cards from a player's hand and returns them to the deck'''
+    for i in reversed(range(len(player.hand))):
+        deck.append(player.hand.pop(i))
 
 def distribute_cards():
     '''distributes cards to all player hands from the deck'''
@@ -81,29 +82,60 @@ def continue_betting():
 def exchange_cards():
     '''switch out cards the player selects'''
 
+def reset_states():
+    '''turn all player states to 1'''
+    for player in players:
+        player.state = 1
 
 # PLAYER FUNCTIONS
 
 
-def bet(player, num=random.randint(5, 25)):
+def bet(player):
     '''should be called on both open and raise, 
     for opening the game with a bet or raising the current highest bet'''
+    if player == players[0]:
+        inp = ''
+        while True:
+            if max(bets) == 0:
+                inp = input('Raise amount? (highest bet is ' + max(bets) + ')')
+            else:
+                inp = input('Open amount?')
+            try:
+                int(inp)
+            except ValueError:
+                print('Invalid ammount')
+                continue
+            else:
+                pass
+    else:
+        if max(bets) == 0:
+            bets[player.identifier] = random.randint(5, 25)
+            print(player.name + ' has opened with ' + str(bets[player.identifier]))
+        else:
+            bets[player.identifier] = max(bets) + random.randint(5, 25)
+            print(player.name + ' has raised with ' + str(bets[player.identifier]))
 
-
-def check(_):
+def check(player):
     '''do nothing, just move to next player'''
-
+    print(player.name + ' has checked')
 
 def fold(player):
     '''drop bet, out of the round'''
-
+    bets[player.identifier] = 0
+    remove_cards(player)
+    player.state = 0
+    print(player.name + ' has folded')
 
 def call(player):
     '''match highest bet so far'''
+    bets[player.identifier] = max(bets)
+    print(player.name + ' has called')
 
 
 def allin(player):
     '''make a bet out of all of the player's coins'''
+    bets[player.identifier] = player.coins
+    print(player.name + ' has gone allin!')
 
 
 # DEBUG FUNCTIONS
@@ -115,10 +147,9 @@ def print_hands():
 
 
 def print_hand(player_num):
-    '''prints all cards in a certain player's hand'''
+    '''debug function, prints all cards in a certain player's hand'''
     for card in players[player_num].hand:
         print(card.name)
-
 
 def print_deck():
     '''debug function, prints full deck and deck count'''
@@ -127,7 +158,7 @@ def print_deck():
     print('Deck count: ', len(deck))
 
 def print_nums():
-    '''print all player ids'''
+    '''debug function, print all player ids'''
     for player in players:
         print(player.identifier)
 
@@ -218,7 +249,7 @@ PLAYER_COUNT = 5  # change to 1
 '''
 print('Generating...\n')
 
-players = [Player('player' + str(i)) for i in range(PLAYER_COUNT)]
+players = [Player('player' + str(i), i) for i in range(PLAYER_COUNT)]
 deck = [Card(list(cards.keys())[i], list(cards.values())[i][0],
              list(cards.values())[i][1]) for i in range(len(list(cards.keys())))]
 
@@ -235,7 +266,7 @@ while round_num < 2:
     start_betting()
 
     print_hand(0)
-    remove_cards()
+    remove_all_cards()
     round_num += 1
 
 print_nums()
