@@ -35,7 +35,7 @@ def remove_all_cards():
 
 def remove_cards(player):
     '''removes cards from a player's hand and returns them to the deck'''
-    for i in reversed(range(len(player.hand))):
+    for i in range(len(player.hand), -1, -1):
         deck.append(player.hand.pop(i))
 
 def distribute_cards():
@@ -59,10 +59,9 @@ def organize_hands():
 
 def start_betting():
     '''starts the loops to resolve bets'''
-    choices = ['check', 'open', 'allin']
+    choices = ['check', 'check', 'open', 'open', 'open', 'open', 'open']
     while True:
-        action = input(
-            'Whats your selection?\ncheck, open, or allin?\n').lower()
+        action = input('Whats your selection?\nCheck, open, or allin?\n').lower()
         if action not in choices:
             print('Invalid Action')
             continue
@@ -77,10 +76,41 @@ def start_betting():
 
 def continue_betting():
     '''pickup from starting bets'''
-
+    choices = ['fold', 'fold', 'call', 'raise', 'raise', 'raise', 'raise', 'raise', 'allin']
+    while True:
+        action = input('Whats your selection?\nFold, raise, or allin?\n').lower()
+        if action not in choices:
+            print('Invalid Action')
+            continue
+        actions[action](players[0])
+        break
+    for player in players:
+        action = random.choice(choices)
+        if player == players[0]:
+            continue
+        actions[action](player)
 
 def exchange_cards():
     '''switch out cards the player selects'''
+    switch_string = input('''Which cards do you want to switch out?\n
+                          Use number and kingdom, ie. AS for Ace of Spades\n''').upper()
+    for i in range(len(players[0].hand), -1, -1):
+        if players[0].hand[i].identifier in switch_string:
+            pile.append(players[0].hand.pop(i))
+    for player in players:
+        if player != players[0]:
+            for i in range(0, random.randint(0, 5), -1, -1):
+                pile.append(player.pop(i))
+        while len(player.hand) < 5:
+            player.hand.append(deck.pop(random.randint(0, len(deck))))
+
+def dump_pile():
+    '''remove all cards from the pile and place them back in the deck'''
+    for i in range(len(pile), -1, -1):
+        deck.append(pile.pop(i))
+
+def showdown():
+    '''flip the cards and declare winner(learn more on poker first)'''
 
 def reset_states():
     '''turn all player states to 1'''
@@ -106,13 +136,13 @@ def bet(player):
                 print('Invalid ammount')
                 continue
             else:
-                pass
+                break
     else:
         if max(bets) == 0:
-            bets[player.identifier] = random.randint(5, 25)
+            bets[player.identifier] = random.randint(5, 20)
             print(player.name + ' has opened with ' + str(bets[player.identifier]))
         else:
-            bets[player.identifier] = max(bets) + random.randint(5, 25)
+            bets[player.identifier] = max(bets) + random.randint(5, 20)
             print(player.name + ' has raised with ' + str(bets[player.identifier]))
 
 def check(player):
@@ -122,9 +152,10 @@ def check(player):
 def fold(player):
     '''drop bet, out of the round'''
     bets[player.identifier] = 0
-    remove_cards(player)
     player.state = 0
-    print(player.name + ' has folded')
+    print(player.name + ' has folded.\n' + player.name + "'s cards:")
+    print_hand(player)
+    remove_cards(player)
 
 def call(player):
     '''match highest bet so far'''
@@ -256,7 +287,8 @@ deck = [Card(list(cards.keys())[i], list(cards.values())[i][0],
 # Game Loop
 round_num = 1
 while round_num < 2:
-    bets = [0 for _ in players]
+    bets = [0 for _ in players] # Reminder to consolodate a few of these into higher order funcitons
+    pile = []
     print('Round ' + str(round_num))
     print('Shuffling...')
     random.shuffle(deck)
@@ -264,9 +296,8 @@ while round_num < 2:
     organize_hands()
     print('Coins: ' + str(players[0].coins))
     start_betting()
-
+    exchange_cards()
+    continue_betting()
     print_hand(0)
     remove_all_cards()
     round_num += 1
-
-print_nums()
