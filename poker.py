@@ -27,16 +27,51 @@ class Card:
 # GAME FUNCTIONS
 
 
+def rank_hand(hand):
+    '''figure out the rank of their hand, returns a word'''
+    bank = []
+    count_ref = [var[0][0] for var in bank][0]
+    count_bank = [count_ref.count(var) for var in count_ref]
+
+    def all_same(array):
+        return all(x == array[0] for x in array)
+
+    for card in hand:
+        bank.append([card.identifier, card.rank])  # find more synonyms
+
+    if ['A', 'K', 'Q', 'J', '1'] == [var[0][0] for var in bank] and [bank[0][0][1] for _ in bank] == [stuff[0][1] for stuff in bank]:
+        return 'Royal Flush!'
+    elif list(range(bank[0][1], 6)) == [var[1] for var in bank] and [bank[0][0][1] for _ in bank] == [stuff[0][1] for stuff in bank]:
+        return 'Straight Flush'
+    elif max(count_bank) == 4:
+        return 'Four of a Kind'
+    elif 3 in count_bank and 2 in count_bank:
+        return 'Full House'
+    elif all_same([var[0][1] for var in bank]):
+        return 'Flush'
+    elif list(range(bank[0][1], 6)) == [var[1] for var in bank]:
+        return 'Striaght'
+    elif 3 in count_bank:
+        return 'Three of a Kind'
+    elif count_bank.count(2) == 4:
+        return 'Two Pair'
+    elif 2 in count_bank:
+        return 'Pair'
+    else: # Add a get_identifier() and napalm the first portion
+        return 'High Card: ' + max(hand,key=get_rank)
+
 def remove_all_cards():
     '''removes cards from all player hands and returns them to the deck'''
     print('Returning cards...\n')
     for player in players:
         remove_cards(player)
 
+
 def remove_cards(player):
     '''removes cards from a player's hand and returns them to the deck'''
     for i in range(len(player.hand), -1, -1):
         deck.append(player.hand.pop(i))
+
 
 def distribute_cards():
     '''distributes cards to all player hands from the deck'''
@@ -61,7 +96,8 @@ def start_betting():
     '''starts the loops to resolve bets'''
     choices = ['check', 'check', 'open', 'open', 'open', 'open', 'open']
     while True:
-        action = input('Whats your selection?\nCheck, open, or allin?\n').lower()
+        action = input(
+            'Whats your selection?\nCheck, open, or allin?\n').lower()
         if action not in choices:
             print('Invalid Action')
             continue
@@ -76,9 +112,11 @@ def start_betting():
 
 def continue_betting():
     '''pickup from starting bets'''
-    choices = ['fold', 'fold', 'call', 'raise', 'raise', 'raise', 'raise', 'raise', 'allin']
+    choices = ['fold', 'fold', 'call', 'raise',
+               'raise', 'raise', 'raise', 'raise', 'allin']
     while True:
-        action = input('Whats your selection?\nFold, raise, or allin?\n').lower()
+        action = input(
+            'Whats your selection?\nFold, raise, or allin?\n').lower()
         if action not in choices:
             print('Invalid Action')
             continue
@@ -89,6 +127,7 @@ def continue_betting():
         if player == players[0]:
             continue
         actions[action](player)
+
 
 def exchange_cards():
     '''switch out cards the player selects'''
@@ -104,18 +143,32 @@ def exchange_cards():
         while len(player.hand) < 5:
             player.hand.append(deck.pop(random.randint(0, len(deck))))
 
+
 def dump_pile():
     '''remove all cards from the pile and place them back in the deck'''
     for i in range(len(pile), -1, -1):
         deck.append(pile.pop(i))
 
+
 def showdown():
     '''flip the cards and declare winner(learn more on poker first)'''
+    for player in players:
+        if player.state < 1:
+            continue
+        print(player.name + ' has a ' + rank_hand(player.hand))
+
 
 def reset_states():
     '''turn all player states to 1'''
     for player in players:
         player.state = 1
+
+
+def fill_pot():
+    '''fill the pot, takeout players who bet too much'''
+    for i in range(len(bets), -1, -1):
+        if players[i].state < 1:
+            continue
 
 # PLAYER FUNCTIONS
 
@@ -139,15 +192,19 @@ def bet(player):
                 break
     else:
         if max(bets) == 0:
-            bets[player.identifier] = random.randint(5, 20)
-            print(player.name + ' has opened with ' + str(bets[player.identifier]))
+            bets[player.identifier] += random.randint(5, 20)
+            print(player.name + ' has opened with ' +
+                  str(bets[player.identifier]))
         else:
-            bets[player.identifier] = max(bets) + random.randint(5, 20)
-            print(player.name + ' has raised with ' + str(bets[player.identifier]))
+            bets[player.identifier] += max(bets) + random.randint(5, 20)
+            print(player.name + ' has raised with ' +
+                  str(bets[player.identifier]))
+
 
 def check(player):
     '''do nothing, just move to next player'''
     print(player.name + ' has checked')
+
 
 def fold(player):
     '''drop bet, out of the round'''
@@ -156,6 +213,7 @@ def fold(player):
     print(player.name + ' has folded.\n' + player.name + "'s cards:")
     print_hand(player)
     remove_cards(player)
+
 
 def call(player):
     '''match highest bet so far'''
@@ -171,9 +229,10 @@ def allin(player):
 
 # DEBUG FUNCTIONS
 
-def print_hands():
+def print_hands():  # Remove from debug functions
     '''debug function, shows all player hands'''
     for i in range(players):
+        print(players[i].name + "'s hand:")
         print_hand(i)
 
 
@@ -182,11 +241,13 @@ def print_hand(player_num):
     for card in players[player_num].hand:
         print(card.name)
 
+
 def print_deck():
     '''debug function, prints full deck and deck count'''
     for card in deck:
         print(card.name)
     print('Deck count: ', len(deck))
+
 
 def print_nums():
     '''debug function, print all player ids'''
@@ -287,7 +348,8 @@ deck = [Card(list(cards.keys())[i], list(cards.values())[i][0],
 # Game Loop
 round_num = 1
 while round_num < 2:
-    bets = [0 for _ in players] # Reminder to consolodate a few of these into higher order funcitons
+    # Reminder to consolodate a few of these into higher order funcitons
+    bets = [0 for _ in players]
     pile = []
     print('Round ' + str(round_num))
     print('Shuffling...')
@@ -298,6 +360,9 @@ while round_num < 2:
     start_betting()
     exchange_cards()
     continue_betting()
-    print_hand(0)
+    organize_hands()
+    showdown()
+    pot = 0
     remove_all_cards()
+    dump_pile()
     round_num += 1
