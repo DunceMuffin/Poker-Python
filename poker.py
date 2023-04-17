@@ -29,9 +29,10 @@ def rank_hand(hand):
     '''figure out the rank of their hand, returns a word'''
     count_ref = [get_value(card) for card in hand]
     count_bank = [count_ref.count(value) for value in count_ref]
-    same_suit = True if [get_suit(card) for card in hand] == [get_suit(hand[0]) for _ in range(5)] else False
-    is_straight = True if [get_rank(hand[0]) for _ in range(5)] == [get_rank(card) for card in hand] else False
+    same_suit = [get_suit(card) for card in hand] == [get_suit(hand[0]) for _ in range(5)]
+    is_straight = [get_rank(hand[0]) for _ in range(5)] == [get_rank(card) for card in hand]
 
+    # This is dumb, just give a list with the hand_rank, high_card, and kicker
     if ['A', 'K', 'Q', 'J', '1'] == [get_value(card) for card in hand] and same_suit:
         return 'Royal Flush!'
     elif is_straight and same_suit:
@@ -50,8 +51,7 @@ def rank_hand(hand):
         return 'Two Pair: ' + find_high(hand, count_bank).name
     elif 2 in count_bank:
         return 'Pair: ' + hand[count_bank.index(2)].name
-    else:
-        return 'High Card: ' + max(hand,key=get_rank).name
+    return 'High Card: ' + max(hand,key=get_rank).name
 
 def find_high(hand, bank):
     '''Used on two pairs to find the higher pair, returns card'''
@@ -78,7 +78,6 @@ def distribute_cards():
             player.hand.append(deck.pop(i))
     organize_hands()
 
-# Use these to reform rank_hands()
 def get_value(card):
     '''used for retreiving value, returns value of the card'''
     return card.identifier[0]
@@ -98,16 +97,17 @@ def organize_hands():
 
 def handle_betting():
     '''starts the loops to resolve bets'''
-
-    post_choices = ['fold', 'raise', 'call', 'allin']
-    pre_choices = ['check', 'open', 'allin']
+    if bet.state:
+        choices = ['fold', 'raise', 'call', 'allin']
+    else:
+        choices = ['check', 'open', 'allin']
 
     while True:
         if bet.state:
             action = input("What's your selection?\nFold, raise, call, or allin?\n").lower()
         else:
             action = input("What's your selection?\nCheck, open, or allin?\n").lower()
-        if action not in (post_choices if bet.state else pre_choices):
+        if action in choices:
             print('Invalid Action')
             continue
         actions[action](players[0])
@@ -116,10 +116,12 @@ def handle_betting():
     for player in players:
         if player == players[0]:
             continue
-        if bet.state:
-            action = random.choices(population=post_choices, weights=[0.2, 0.37, 0.38, 0.05])[0]
+        if bet.high_state:
+            action = random.choices(population=choices, weights=[0.65, 0.3, 0.1, 0.05])[0]
+        elif bet.state:
+            action = random.choices(population=choices, weights=[0.2, 0.37, 0.38, 0.05])[0]
         else:
-            action = random.choices(population=pre_choices, weights=[0.25, 0.7, 0.05])[0]
+            action = random.choices(population=choices, weights=[0.25, 0.7, 0.05])[0]
         actions[action](player)
 
 def exchange_cards():
@@ -128,7 +130,8 @@ def exchange_cards():
     print('Coins: ' + str(players[0].coins))
     print('Which cards do you want to switch out?')
     print_hand(0)
-    switch_string = input('Use value and kingdom, ie. AS for Ace of Spades or 1c for Ten of Clubs\n').upper()
+    pointless = 'Use value and kingdom, ie. AS for Ace of Spades or 1c for Ten of Clubs\n'
+    switch_string = input(pointless).upper() # Don't question it
     for i in range(len(players[0].hand) - 1, -1, -1):
         if players[0].hand[i].identifier in switch_string:
             pile.append(players[0].hand.pop(i))
@@ -136,11 +139,12 @@ def exchange_cards():
     for player in players:
         if player != players[0]:
             for i in range(0, random.randint(0, 4), -1):
-                pile.append(player.pop(i))
+                pile.append(player.pop(i)) # Maybe implement a move cards function
         while len(player.hand) < 5:
             player.hand.append(deck.pop(random.randint(0, len(deck))))
     organize_hands()
     print_hand(0)
+
 def dump_pile():
     '''remove all cards from the pile and place them back in the deck'''
     for i in range(len(pile) - 1, -1, -1):
@@ -152,7 +156,7 @@ def showdown():
         if player.state < 1:
             continue
         print(player.name + ' has a ' + rank_hand(player.hand))
-    _ = input('') + 'n'
+    _ = input('NEXT') + 'n' # Figure out how to make the program wait
 
 def reset_player_states():
     '''turn all player states to 1'''
@@ -160,12 +164,9 @@ def reset_player_states():
         player.state = 1
 
 def fill_pot():
-    '''fill the pot, takeout players who bet too much'''
+    '''fill the pot'''
     for i in range(len(bets) - 1, -1, -1):
-        if players[i].state < 1:
-            continue
-        if bets[i] > players[i].coins:
-            bank = bank + bets.pop(i)
+        bank = bank + bets.pop(i)
     return bank
 
 def check_win():
@@ -201,32 +202,43 @@ def bet(player):
             bets[player.identifier] += max(bets) + random.randint(5, 10)
             print(player.name + ' has raised with ' + str(bets[player.identifier]))
     bet.state = True
+    if max(bets) > 50:
+        bet.high_state = True
 
 def check(player):
     '''do nothing, just move to next player'''
     print(player.name + ' has checked')
 
-def fold(player):
+def fold(player, poor=False):
     '''drop bet, out of the round'''
-    bets[player.identifier] = 0
+    bets[player.identifier] = 5
     player.state = 0
-    print(player.name + ' has folded.')
+    if poor:
+        print(player.name + ' had too little coins, Folded')
+    else:
+        print(player.name + ' has folded.')
     print_hand(player.identifier)
     remove_cards(player)
 
 def call(player):
     '''match highest bet so far'''
-    bets[player.identifier] = max(bets)
     print(player.name + ' has called')
+    if player.coins > max(bets):
+        bets[player.identifier] = max(bets)
+    else:
+        fold(player, True)
+        print(player.name + ' had too little coins. Folded')
 
 def allin(player):
     '''make a bet out of all of the player's coins'''
     bets[player.identifier] = player.coins
     print(player.name + ' has gone allin!')
+    if max(bets) > 50:
+        bet.high_state = True
 
 # PRINTERS
 
-def print_hands():  # Remove from debug functions
+def print_hands():
     '''debug function, shows all player hands'''
     for i in range(players):
         print(players[i].name + "'s hand:")
@@ -351,22 +363,24 @@ while True:
     pile = []
     pot = 0
     bet.state = False
+    bet.high_state = False
 
     print('Shuffling...')
     random.shuffle(deck)
     distribute_cards()
-    # Reminder to implement some kind of UI
+    # Reminder to implement more of a UI
 
     print('\nRound ' + str(round_num))
     print('Coins: ' + str(players[0].coins))
     print_hand(0)
     handle_betting()
     exchange_cards()
-    
+
     print('\nRound ' + str(round_num))
     print('Coins: ' + str(players[0].coins))
     print_hand(0)
     handle_betting()
+    fill_pot()
     showdown()
     check_win()
 
